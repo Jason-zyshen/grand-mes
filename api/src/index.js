@@ -2,7 +2,7 @@ import { typeDefs } from './graphql-schema'
 import { ApolloServer } from 'apollo-server-express'
 import express from 'express'
 import neo4j from 'neo4j-driver'
-import { makeAugmentedSchema } from 'neo4j-graphql-js'
+import { makeAugmentedSchema, inferSchema } from 'neo4j-graphql-js'
 import dotenv from 'dotenv'
 
 // set environment variables from .env

@@ -2,9 +2,7 @@
 
 Here we are trying to develop a Manufacturing Executive System with GRANDstack architect.
 
-# Road Map
-
-## Setup Environment
+# Setup Environment
 
 1. Create a new neo4j database on [neo4j sandbox](https://sandbox.neo4j.com/). Copy the _Bolt URL_, _Username_ and _Password_ from the _Connection Details_ tag.
 2. Create a new GRANDstack application with the starter.
@@ -12,9 +10,9 @@ Here we are trying to develop a Manufacturing Executive System with GRANDstack a
    npx create-grandstack-app graph-mes
    ```
 
-## Domain Modeling
+# Domain Modeling
 
-### Step 1: Understanding the domain
+## Step 1: Understanding the domain
 
 Identify the **stakeholders** and the **users** of the application (people, systems). Enumerate the **use cases** that are agreed upon by all stakeholders where users are part of the use case.
 
@@ -59,16 +57,16 @@ So here are some basic use cases we can list for our MES:
 - System lists the workload of every workers.
 - User ships some stocks of several from one place to another.
 
-### Step 2: Create high-level sample data
+## Step 2: Create high-level sample data
 
 A brief description of data.
 
 - 1 product
-- Simple craft with 2 procedures to be executed one after another
-- BOM has 3 raw materials which are needed on the first procedure
-- 4 roles, admin, manager, worker of the 1st procedure, worker of the 2nd procedure
+- Simple craft with 3 procedures to be executed one after another
+- BOM has 2 raw materials which are needed on the first procedure
+- 2 worker of the 1st procedure, worker of the 2nd procedure
 
-### Step 3: Define specific questions for the application
+## Step 3: Define specific questions for the application
 
 Questions for our MES:
 
@@ -80,12 +78,44 @@ Questions for our MES:
 - How many orders are required to be completed before a certain date?
 - For a certain sale order, how many products have been made/are making/haven't been made?
 
-> TODO: Manufacture process needs to be reconsidered.
+## Step 4 : Schema Modeling
 
-### Step 4 : Identify entities, relations and properties
+![Schema](img/graph-mes-schema.svg)
 
-### Step 5: Test questions and refactor the model
+## Step 5: Test questions with sample data and refactor
 
-### Step 6: Test scalability and refactor the model
+![Sample Data](img/graph-mes-sample.svg)
+
+## Step 6: Test scalability and refactor
 
 1. Avoid super node
+
+# Play with Neo4j and Cypher
+
+Now we need to write some Cypher queries to answer the questions above. You may find that new questions come out when you are writing queries. That's totally fine. The understanding of domain will change in the iteration of asking questions and answering with new model, so we may need to refactor our model constantly. We can refactor our model very quickly with Neo4j, so keep feel free to update our question list to make our model fit with the real scenario.
+
+Here we jump through those questions as we are experienced MES developers (LOL), and let's focus on some essential functions we have develop in our product before.
+
+- All
+  - Create a product or material
+  - List all the materials
+  - Create a craft with several procedures
+  - Link a craft to a product
+  - Create a BOM consist of materials with certain amount
+  - List all the BOMs
+  - Link a BOM to a craft
+  - Link a BOM to a procedure
+  - List the craft of a product
+  - List the BOM of a product
+  - Create an order of a product with certain amount and deadline
+  - Select an available craft and BOM for this order
+  - Auto-create the procedures tasks of an order according to the craft
+  - List all the orders
+  - List the amount of raw materials needed for production
+  - List the procedure tasks of an order
+  - ~~Show the progress of an order~~
+  - Show the current tasks of an order
+  - Show the completed amount of production with required
+- Worker
+  - List all the tasks that need to be completed
+  - Execute a task

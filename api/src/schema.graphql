@@ -1,64 +1,89 @@
-type User {
-  userId: ID!
-  name: String
-  reviews: [Review] @relation(name: "WROTE", direction: OUT)
-  avgStars: Float
-    @cypher(
-      statement: "MATCH (this)-[:WROTE]->(r:Review) RETURN toFloat(avg(r.stars))"
-    )
-  numReviews: Int
-    @cypher(statement: "MATCH (this)-[:WROTE]->(r:Review) RETURN COUNT(r)")
-  recommendations(first: Int = 3): [Business]
-    @cypher(
-      statement: "MATCH (this)-[:WROTE]->(r:Review)-[:REVIEWS]->(:Business)<-[:REVIEWS]-(:Review)<-[:WROTE]-(:User)-[:WROTE]->(:Review)-[:REVIEWS]->(rec:Business) WHERE NOT EXISTS( (this)-[:WROTE]->(:Review)-[:REVIEWS]->(rec) ) WITH rec, COUNT(*) AS num ORDER BY num DESC LIMIT $first RETURN rec"
-    )
+type ProcedureTask {
+  _id: Long!
+  id: String!
+  is_completed: String!
+  uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
+  last_task: [WorkOrder] @relation(name: "LAST_TASK", direction: OUT)
+  users: [User] @relation(name: "EXECUTES", direction: IN)
+  workorders: [WorkOrder] @relation(name: "FIRST_TASK", direction: IN)
 }
 
-type Business {
-  businessId: ID!
+type WorkOrder {
+  _id: Long!
+  id: String!
+  is_completed: String!
+  schedule_date: String!
+  has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
+  HAS_PRODUCT_rel: [HAS_PRODUCT]
+  uses_craft: [Craft] @relation(name: "USES_CRAFT", direction: OUT)
+  first_task: [ProcedureTask] @relation(name: "FIRST_TASK", direction: OUT)
+  proceduretasks: [ProcedureTask] @relation(name: "LAST_TASK", direction: IN)
+}
+
+type Material {
+  _id: Long!
+  id: String!
   name: String!
-  address: String
-  city: String
-  state: String
-  location: Point
-  avgStars: Float
-    @cypher(
-      statement: "MATCH (this)<-[:REVIEWS]-(r:Review) RETURN coalesce(avg(r.stars),0.0)"
-    )
-  reviews: [Review] @relation(name: "REVIEWS", direction: IN)
-  categories: [Category] @relation(name: "IN_CATEGORY", direction: OUT)
+  has_craft: [Craft] @relation(name: "HAS_CRAFT", direction: OUT)
+  workorders: [WorkOrder] @relation(name: "HAS_PRODUCT", direction: IN)
+  boms: [BOM] @relation(name: "USES_MATERIAL", direction: IN)
 }
 
-type Review {
-  reviewId: ID!
-  stars: Float
-  text: String
-  date: Date
-  business: Business @relation(name: "REVIEWS", direction: OUT)
-  user: User @relation(name: "WROTE", direction: IN)
+type Craft {
+  _id: Long!
+  id: String!
+  name: String!
+  first_procedure: [Procedure]
+    @relation(name: "FIRST_PROCEDURE", direction: OUT)
+  last_procedure: [Procedure] @relation(name: "LAST_PROCEDURE", direction: OUT)
+  uses_bom: [BOM] @relation(name: "USES_BOM", direction: OUT)
+  materials: [Material] @relation(name: "HAS_CRAFT", direction: IN)
+  workorders: [WorkOrder] @relation(name: "USES_CRAFT", direction: IN)
 }
 
-type Category {
-  name: ID!
-  businesses: [Business] @relation(name: "IN_CATEGORY", direction: IN)
+type User {
+  _id: Long!
+  id: String!
+  name: String!
+  executes: [ProcedureTask] @relation(name: "EXECUTES", direction: OUT)
+  EXECUTES_rel: [EXECUTES]
 }
 
-type RatingCount {
-  stars: Float!
-  count: Int!
+type BOM {
+  _id: Long!
+  id: String!
+  name: String!
+  uses_material: [Material] @relation(name: "USES_MATERIAL", direction: OUT)
+  USES_MATERIAL_rel: [USES_MATERIAL]
+  crafts: [Craft] @relation(name: "USES_BOM", direction: IN)
 }
 
-type Mutation {
-  mergeBusinessCategory(categories: [String!]!, businessId: ID!): Business
-    @cypher(
-      statement: "MATCH (b:Business {businessId: $businessId}) UNWIND $categories AS cat MERGE (c:Category {name: cat}) MERGE (b)-[:IN_CATEGORY]->(c) RETURN b"
-    )
+type Procedure {
+  _id: Long!
+  id: String!
+  name: String!
+  proceduretasks_uses_procedure: [ProcedureTask]
+    @relation(name: "USES_PROCEDURE", direction: IN)
+  crafts_first_procedure: [Craft]
+    @relation(name: "FIRST_PROCEDURE", direction: IN)
+  crafts_last_procedure: [Craft]
+    @relation(name: "LAST_PROCEDURE", direction: IN)
 }
 
-type Query {
-  userCount: Int! @cypher(statement: "MATCH (u:User) RETURN COUNT(u)")
-  ratingsCount: [RatingCount]
-    @cypher(
-      statement: "MATCH (r:Review) WITH r.stars AS stars, COUNT(*) AS count ORDER BY stars RETURN {stars: stars, count: count}"
-    )
+type HAS_PRODUCT @relation(name: "HAS_PRODUCT") {
+  from: WorkOrder!
+  to: Material!
+  amount: String!
+}
+
+type EXECUTES @relation(name: "EXECUTES") {
+  from: User!
+  to: ProcedureTask!
+  at_time: String!
+}
+
+type USES_MATERIAL @relation(name: "USES_MATERIAL") {
+  from: BOM!
+  to: Material!
+  amount: Int!
 }
