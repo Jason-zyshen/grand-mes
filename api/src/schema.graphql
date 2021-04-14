@@ -1,28 +1,32 @@
+# type mutation{
+#    AddCraftProcedure(){
+
+#    }
+# }
+
 type ProcedureTask {
-  _id: Long!
-  id: String!
+  id: ID! @id
   is_completed: String!
   uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
-  last_task: [WorkOrder] @relation(name: "LAST_TASK", direction: OUT)
-  users: [User] @relation(name: "EXECUTES", direction: IN)
-  workorders: [WorkOrder] @relation(name: "FIRST_TASK", direction: IN)
+  workorders_last_task: [WorkOrder] @relation(name: "LAST_TASK", direction: IN)
+  users_executes: [User] @relation(name: "EXECUTES", direction: IN)
+  workorders_first_task: [WorkOrder]
+    @relation(name: "FIRST_TASK", direction: IN)
 }
 
 type WorkOrder {
-  _id: Long!
-  id: String!
+  id: ID! @id
   is_completed: String!
   schedule_date: String!
+  last_task: [ProcedureTask] @relation(name: "LAST_TASK", direction: OUT)
   has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
   HAS_PRODUCT_rel: [HAS_PRODUCT]
   uses_craft: [Craft] @relation(name: "USES_CRAFT", direction: OUT)
   first_task: [ProcedureTask] @relation(name: "FIRST_TASK", direction: OUT)
-  proceduretasks: [ProcedureTask] @relation(name: "LAST_TASK", direction: IN)
 }
 
 type Material {
-  _id: Long!
-  id: String!
+  id: ID! @id
   name: String!
   has_craft: [Craft] @relation(name: "HAS_CRAFT", direction: OUT)
   workorders: [WorkOrder] @relation(name: "HAS_PRODUCT", direction: IN)
@@ -30,9 +34,8 @@ type Material {
 }
 
 type Craft {
-  _id: Long!
-  id: String!
-  name: String!
+  id: ID! @id
+  name: String! @unique
   first_procedure: [Procedure]
     @relation(name: "FIRST_PROCEDURE", direction: OUT)
   last_procedure: [Procedure] @relation(name: "LAST_PROCEDURE", direction: OUT)
@@ -42,16 +45,14 @@ type Craft {
 }
 
 type User {
-  _id: Long!
-  id: String!
+  id: ID! @id
   name: String!
   executes: [ProcedureTask] @relation(name: "EXECUTES", direction: OUT)
   EXECUTES_rel: [EXECUTES]
 }
 
 type BOM {
-  _id: Long!
-  id: String!
+  id: ID! @id
   name: String!
   uses_material: [Material] @relation(name: "USES_MATERIAL", direction: OUT)
   USES_MATERIAL_rel: [USES_MATERIAL]
@@ -59,9 +60,8 @@ type BOM {
 }
 
 type Procedure {
-  _id: Long!
-  id: String!
-  name: String!
+  id: ID! @id
+  name: String! @unique
   proceduretasks_uses_procedure: [ProcedureTask]
     @relation(name: "USES_PROCEDURE", direction: IN)
   crafts_first_procedure: [Craft]
@@ -83,6 +83,7 @@ type EXECUTES @relation(name: "EXECUTES") {
 }
 
 type USES_MATERIAL @relation(name: "USES_MATERIAL") {
+  # relation: BOM.id + Material.id @unique #TODO
   from: BOM!
   to: Material!
   amount: Int!

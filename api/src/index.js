@@ -2,7 +2,11 @@ import { typeDefs } from './graphql-schema'
 import { ApolloServer } from 'apollo-server-express'
 import express from 'express'
 import neo4j from 'neo4j-driver'
-import { makeAugmentedSchema, inferSchema } from 'neo4j-graphql-js'
+import {
+  makeAugmentedSchema,
+  assertSchema,
+  searchSchema,
+} from 'neo4j-graphql-js'
 import dotenv from 'dotenv'
 
 // set environment variables from .env
@@ -21,11 +25,12 @@ const app = express()
 const schema = makeAugmentedSchema({
   typeDefs,
   config: {
+    experimental: true,
     query: {
-      exclude: ['RatingCount'],
+      exclude: [''],
     },
     mutation: {
-      exclude: ['RatingCount'],
+      exclude: [''],
     },
   },
 })
@@ -42,6 +47,11 @@ const driver = neo4j.driver(
     process.env.NEO4J_PASSWORD || 'neo4j'
   )
 )
+
+// Add constraints
+assertSchema({ schema, driver, debug: true })
+// Add full-text search
+searchSchema({ schema, driver, debug: true })
 
 /*
  * Create a new ApolloServer instance, serving the GraphQL schema

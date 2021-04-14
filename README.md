@@ -6,6 +6,7 @@ Here we are trying to develop a Manufacturing Executive System with GRANDstack a
 
 1. Create a new neo4j database on [neo4j sandbox](https://sandbox.neo4j.com/). Copy the _Bolt URL_, _Username_ and _Password_ from the _Connection Details_ tag.
 2. Create a new GRANDstack application with the starter.
+
    ```bash
    npx create-grandstack-app graph-mes
    ```
@@ -57,7 +58,13 @@ So here are some basic use cases we can list for our MES:
 - System lists the workload of every workers.
 - User ships some stocks of several from one place to another.
 
-## Step 2: Create high-level sample data
+## Step 2 : Create a initial schema
+
+Create our first model with the awesome visual model editor: [Arrows](https://arrows.app/)
+
+![Schema](img/graph-mes-schema.svg)
+
+## Step 3: Create high-level sample data to gain an intuitive view
 
 A brief description of data.
 
@@ -66,7 +73,7 @@ A brief description of data.
 - BOM has 2 raw materials which are needed on the first procedure
 - 2 worker of the 1st procedure, worker of the 2nd procedure
 
-## Step 3: Define specific questions for the application
+## Step 3: Ask specific questions for this domain
 
 Questions for our MES:
 
@@ -78,21 +85,19 @@ Questions for our MES:
 - How many orders are required to be completed before a certain date?
 - For a certain sale order, how many products have been made/are making/haven't been made?
 
-## Step 4 : Schema Modeling
-
-![Schema](img/graph-mes-schema.svg)
-
 ## Step 5: Test questions with sample data and refactor
 
 ![Sample Data](img/graph-mes-sample.svg)
 
 ## Step 6: Test scalability and refactor
 
-1. Avoid super node
+Discuss with domain experts about the magnitude of each entities. Consider what will the model be like with that amount of data and the efficiency to query in that model. Especially try to avoid super node, which is node with huge amount of relations.
 
 # Play with Neo4j and Cypher
 
 Now we need to write some Cypher queries to answer the questions above. You may find that new questions come out when you are writing queries. That's totally fine. The understanding of domain will change in the iteration of asking questions and answering with new model, so we may need to refactor our model constantly. We can refactor our model very quickly with Neo4j, so keep feel free to update our question list to make our model fit with the real scenario.
+
+## Function List
 
 Here we jump through those questions as we are experienced MES developers (LOL), and let's focus on some essential functions we have develop in our product before.
 
@@ -119,3 +124,60 @@ Here we jump through those questions as we are experienced MES developers (LOL),
 - Worker
   - List all the tasks that need to be completed
   - Execute a task
+
+## Initialize the database with sample data
+
+We need to add some data to our database at first. With [Arrows](https://arrows.app/), we can easily export our sample data from model to Neo4j database simply click **Download/Export** button on the upper right corner, and choose export type **Cypher**. We can choose **CREATE** to import data in the first time, and we can export with **MERGE** when we update our model.
+
+Then in the Neo4j browser, we can check the schema and all the data imported with:
+
+```Cypher
+CALL db.schema.visualiszation()
+```
+
+```Cypher
+MATCH (n) RETURN n
+```
+
+## Initialize GraphQL server with existing database
+
+Before we get our hands dirty with data, let's start the GraphQL server first. And you will be surprised how much time could be saved with GraphQL.
+
+Let's generate GraphQL definitions from our existing database with one line.
+
+```bash
+npm run inferschema:write
+```
+
+Now we can see the `/api/src/schema.graphql` has been regenerated with all the GraphQL type definitions we need.
+
+Let's try send our first request with GraphQL Playground.
+
+```bash
+npm run start
+```
+
+Now we can visit with GraphQL Playground on <http://localhost:4001/graphql>
+
+## Add constraints to the database
+
+We need to create uniqueness constraint to prevent our data turn into chaos after mutations. Also we want to speed up queries by setting index. We can add all these constraints with Cypher language in Neo4j browser, though it will take sometime if we want to add lots of constraints to the database. Luckily, we can take advantage of built-in function in `neo4j-graphql.js` to active generate and update constraints to database.
+
+Let's set it up.
+
+```/api/src/index.js
+const schema = makeAugmentedSchema({
+  typeDefs,
+  config: {
+    experimental: true,
+
+const driver = neo4j.driver(...)
+
+assertSchema({ schema, driver, debug: true })
+```
+
+Now we can use `@id`, `@unique`, `@index` after the properties of a node or relation.
+
+# TODO
+
+- [ ] Create a property for each relation to make a unique constraint.
