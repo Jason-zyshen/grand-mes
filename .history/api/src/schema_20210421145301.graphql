@@ -1,4 +1,13 @@
 type Mutation {
+  addProceduresNEXT(from_name: String!, to_name: String!): String!
+    @cypher(
+      statement: """
+      MATCH (from:Procedure{name: $from_name}), (to:Procedure{name: $to_name})
+      MERGE (from)-[:NEXT]->(to)
+      RETURN from.name + '->' to.name
+      """
+    )
+
   createBOM(
     productName: String!
     BOMName: String!
@@ -16,80 +25,43 @@ type Mutation {
       RETURN bom
       """
     )
+
   createCraft(
     productName: String!
     craftName: String!
-    craftDetail: [_craftDetail!]!
+    craftDetail: _craftDetail!
   ): Craft!
     @cypher(
       statement: """
       MATCH (product:Material{name: $productName})
       MERGE (craft:Craft {name: $craftName})
-        ON CREATE SET craft.id = apoc.create.uuid()
+      ON CREATE SET craft.id = apoc.create.uuid()
       MERGE (product)-[:HAS_CRAFT]->(craft)
       WITH craft
-
-      MATCH (first:Procedure {name: $craftDetail[0].name})
-      MATCH (last:Procedure {name: $craftDetail[-1].name})
-      MERGE (craft)-[fp:HAS_PROCEDURE {is_first: true}]->(first)
-      MERGE (craft)-[lp:HAS_PROCEDURE {is_last: true}]->(last)
-      WITH craft
-
-      // TODO: Will throw error when only one procedure.
-      UNWIND $craftDetail AS detail
+      UNWIND $craftDetail[0..-1] AS detail
       MATCH (procedure:Procedure {name: detail.name})
       MATCH (next:Procedure {name: detail.next})
-      WHERE detail.next IS NOT NULL
       MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
       MERGE (procedure)-[:NEXT]->(next)
+      WITH craft
+      MATCH (first:Procedure {name: $craftDetail[0].name})
+      MATCH (last:Procedure {name: $craftDetail[-1].name})
+      MERGE (craft)-[fp:HAS_PROCEDURE]->(first)
+      SET fp.is_first = true
+      MERGE (craft)-[lp:HAS_PROCEDURE]->(last)
+      SET lp.is_last = true
 
       RETURN craft
       """
     )
 
-  createOrder(
-    productName: String!
-    craftName: String!
-    orderId: ID
-  ): WorkOrder!
-    @cypher(
-      statement: """
-      // Create order.
-      MATCH (product:Material{name: $productName})
-      MERGE (product)<-[:HAS_PRODUCT]-(order:WorkOrder {id: apoc.create.uuid()})
-        ON CREATE SET order.is_completed = false
-      WITH order
-
-      // Create tasks from craft.
-      MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
-      MERGE (order)-[:USES_CRAFT]->(craft)
-      MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
-        ON CREATE SET task.name = procedure.name
-      MERGE (order)-[:HAS_TASK]->(task)
-      WITH order, task, craft
-
-      // Add first and last mark.
-      MATCH (craft)-[:HAS_PROCEDURE {is_first: true}]->(:Procedure)<-[:USES_PROCEDURE]-(first:ProcedureTask)<-[:HAS_TASK]-(order)
-      MATCH (craft)-[:HAS_PROCEDURE {is_last: true}]->(:Procedure)<-[:USES_PROCEDURE]-(last:ProcedureTask)<-[:HAS_TASK]-(order)
-      MERGE (order)-[ft:HAS_TASK]->(first)
-      SET ft.is_first = true
-      MERGE (order)-[lt:HAS_TASK]->(last)
-      SET lt.is_last = true
-      WITH order, task
-
-      // Add order to tasks.
-      MATCH (task)-[:USES_PROCEDURE]->(:Procedure)-[:NEXT]->(:Procedure)<-[:USES_PROCEDURE]-(nextTask:ProcedureTask)<-[:HAS_TASK]-(order)
-      MERGE (task)-[:NEXT]->(nextTask)
-
-      RETURN order
-      """
-    )
+  #  createOrder(): Order! @cypher(statement: """""")
 }
 
 type WorkOrder {
   id: ID! @id
   is_completed: Boolean!
-  schedule_date: String
+  schedule_date: DateTime!
   has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
   HAS_PRODUCT_rel: [HAS_PRODUCT]
   has_task: [ProcedureTask] @relation(name: "HAS_TASK", direction: OUT)
@@ -97,7 +69,6 @@ type WorkOrder {
 
 type ProcedureTask {
   id: ID! @id
-  name: String!
   is_completed: Boolean!
   uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
   users: [User] @relation(name: "EXECUTES", direction: IN)
@@ -182,5 +153,5 @@ input _BOMDetail {
 
 input _craftDetail {
   name: String!
-  next: String
+  next: String!
 }

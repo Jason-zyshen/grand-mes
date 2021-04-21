@@ -54,8 +54,8 @@ type Mutation {
   ): WorkOrder!
     @cypher(
       statement: """
-      // Create order.
-      MATCH (product:Material{name: $productName})
+            // Create order.
+             MATCH (product:Material{name: $productName})
       MERGE (product)<-[:HAS_PRODUCT]-(order:WorkOrder {id: apoc.create.uuid()})
         ON CREATE SET order.is_completed = false
       WITH order

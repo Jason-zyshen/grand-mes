@@ -29,9 +29,9 @@ const schema = makeAugmentedSchema({
     query: {
       exclude: [''],
     },
-    mutation: {
-      exclude: ['WorkOrder', 'BOM', 'Craft'],
-    },
+    mutation: false, //{
+    //   exclude: ['WorkOrder', 'BOM', 'Craft'],
+    // },
   },
 })
 

@@ -55,33 +55,31 @@ type Mutation {
     @cypher(
       statement: """
       // Create order.
-      MATCH (product:Material{name: $productName})
-      MERGE (product)<-[:HAS_PRODUCT]-(order:WorkOrder {id: apoc.create.uuid()})
-        ON CREATE SET order.is_completed = false
-      WITH order
+       MATCH (product:Material{name: $productName})
+       MERGE (product)<-[:HAS_PRODUCT]-(order:WorkOrder {id: apoc.create.uuid()})
+         ON CREATE SET order.is_completed = false
+       WITH order
 
-      // Create tasks from craft.
-      MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
-      MERGE (order)-[:USES_CRAFT]->(craft)
-      MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
-        ON CREATE SET task.name = procedure.name
-      MERGE (order)-[:HAS_TASK]->(task)
-      WITH order, task, craft
+       // Create tasks from craft.
+       MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
+       MERGE (order)-[:USES_CRAFT]->(craft)
+       MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
+         ON CREATE SET task.name = procedure.name
+       WITH order, task, craft
 
-      // Add first and last mark.
-      MATCH (craft)-[:HAS_PROCEDURE {is_first: true}]->(:Procedure)<-[:USES_PROCEDURE]-(first:ProcedureTask)<-[:HAS_TASK]-(order)
-      MATCH (craft)-[:HAS_PROCEDURE {is_last: true}]->(:Procedure)<-[:USES_PROCEDURE]-(last:ProcedureTask)<-[:HAS_TASK]-(order)
-      MERGE (order)-[ft:HAS_TASK]->(first)
-      SET ft.is_first = true
-      MERGE (order)-[lt:HAS_TASK]->(last)
-      SET lt.is_last = true
-      WITH order, task
+       // Link tasks to order.
+       MATCH (craft)-[:HAS_PROCEDURE {is_first: true}]->(:Procedure)<-[:USES_PROCEDURE]-(first:ProcedureTask)
+       MATCH (craft)-[:HAS_PROCEDURE {is_last: true}]->(:Procedure)<-[:USES_PROCEDURE]-(last:ProcedureTask)
+       MERGE (order)-[:HAS_TASK {is_first: true}]->(first)
+       MERGE (order)-[:HAS_TASK {is_last: true}]->(last)
+       MERGE (order)-[:HAS_TASK]->(task)
+       WITH order, task
 
-      // Add order to tasks.
-      MATCH (task)-[:USES_PROCEDURE]->(:Procedure)-[:NEXT]->(:Procedure)<-[:USES_PROCEDURE]-(nextTask:ProcedureTask)<-[:HAS_TASK]-(order)
-      MERGE (task)-[:NEXT]->(nextTask)
+       // Add order to tasks
+       MATCH (task)-[:USES_PROCEDURE]->(:Procedure)-[:NEXT]->(:Procedure)<-[:USES_PROCEDURE]-(nextTask:ProcedureTask)<-[:HAS_TASK]-(order)
+       MERGE (task)-[:NEXT]->(nextTask)
 
-      RETURN order
+       RETURN order
       """
     )
 }

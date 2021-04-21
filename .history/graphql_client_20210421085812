@@ -1,6 +1,6 @@
 # - Create a product or material
 mutation CreateMaterial {
-  CreateMaterial(data: { name: "largeTable" }) {
+  CreateMaterial(data: { name: "new_table" }) {
     id
     name
   }
@@ -14,22 +14,78 @@ query ListMaterial {
   }
 }
 
-# - Create a BOM with certain amount of materials
+# - Create a craft with several procedures
+mutation CreateCraft {
+  CreateCraft(data: { name: "TwoProcess" }) {
+    id
+    name
+  }
+}
+
+# - List all the Crafts
+query ListCraft {
+  Craft {
+    id
+    name
+    has_procedure {
+      id
+      name
+    }
+  }
+}
+
+# - Link a craft to a product
+mutation AddCraftToMaterial {
+  AddMaterialHas_craft(
+    from: { id: "48ca4caa-305b-457b-9b9b-763bbcce9d70" }
+    to: { id: "636aa475-115e-4707-9c6b-a4ad7317e5d5" }
+  ) {
+    from {
+      id
+      name
+    }
+    to {
+      id
+      name
+    }
+  }
+}
+
+# - Create a BOM
 mutation CreateBOM {
-  createBOM(
+  CreateBOM(
     productName: "table"
-    BOMName: "tableBOM"
-    bomDetail: [{ name: "leg", amount: 4 }, { name: "board", amount: 1 }]
+    BOMName: "TableBOM"
+    bomDetail: [{name: "leg", amount: 4}, {name: "board", amount: 1}]
   ) {
     id
     name
-    USES_MATERIAL_rel {
+    USES_MATERIAL_rel{
       amount
-      Material {
+      Material{
         id
         name
       }
     }
+  }
+}
+
+# - Link certain amount of materials to a BOM
+mutation AddMaterialToBOM {
+  AddBOMUSES_MATERIAL_rel(
+    from: { id: "fb98bf8b-8cc1-4825-8df8-c996b2139aaf" }
+    to: { id: "a06aa219-c846-433e-858e-37f6b5a657e3" }
+    data: { amount: 4 }
+  ) {
+    from {
+      id
+      name
+    }
+    to {
+      id
+      name
+    }
+    amount
   }
 }
 
@@ -56,6 +112,23 @@ query ListBOM {
   }
 }
 
+# - Link a BOM to a craft
+mutation AddBOMToCraft {
+  AddCraftUses_bom(
+    from: { id: "636aa475-115e-4707-9c6b-a4ad7317e5d5" }
+    to: { id: "fb98bf8b-8cc1-4825-8df8-c996b2139aaf" }
+  ) {
+    from {
+      id
+      name
+    }
+    to {
+      id
+      name
+    }
+  }
+}
+
 # - Create a procedure
 mutation CreateProcedure {
   CreateProcedure(data: { name: "p0" }) {
@@ -72,30 +145,31 @@ query ListProcedure {
   }
 }
 
-# - Create a craft with procedures and BOM
-mutation CreateCraft {
-  createCraft(
-    productName: "table"
-    craftName: "makeTable"
-    craftDetail: [
-      { name: "assembly", next: "paint" }
-      { name: "paint", next: "quality" }
-      { name: "quality" }
-    ]
+# - Link a procedure to a craft
+mutation AddProcedureToCraft {
+  AddCraftHas_procedure(
+    from: { id: "fd5079db-e33d-4c2f-a18a-bb02a87253b9" }
+    to: { id: "2cff4a43-00a4-4311-8243-25224d246e12" }
   ) {
-    id
-    name
-    has_procedure {
+    from {
+      id
+      name
+    }
+    to {
+      id
       name
     }
   }
 }
 
+mutation AddNextProcedure {
+  addProceduresNEXT(from_name: "p1", to_name: "p2")
+}
 
 # - Link a BOM to a procedure
 
 # - List the craft and BOM of a product
-query CraftAndBOMOfProduct {
+query ProductCraftAndBOM {
   Material(filter: { name: "table" }) {
     id
     name
@@ -240,6 +314,8 @@ mutation AddProcedureToTask {
     }
   }
 }
+
+
 
 # - List all the tasks that need to be completed
 
