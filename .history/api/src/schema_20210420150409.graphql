@@ -1,5 +1,14 @@
+type Query {
+  listCraft: [Procedure!]!
+    @cypher(
+      statement: """
+
+      """
+    )
+}
+
 type Mutation {
-  addProceduresNEXT(from_name: String!, to_name: String!): String!
+  addProceduresNEXT(from_name: String!, to_name: String!): [Procedure!]!
     @cypher(
       statement: """
       MATCH (from:Procedure{name: $from_name}), (to:Procedure{name: $to_name})
@@ -7,26 +16,6 @@ type Mutation {
       RETURN from.name + '->' to.name
       """
     )
-
-  createBOM(
-    productName: String!
-    BOMName: String!
-    bomDetail: [_BOMDetail]!
-  ): BOM!
-    @cypher(
-      statement: """
-      //WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
-      UNWIND bomDetail AS detail
-
-      MATCH (product:Material{name: $productName})
-      MERGE (product)-[:HAS_BOM]->(bom:BOM {name: 'TableBOM'})
-      MERGE (bom)-[:USES_MATERIAL{amount: detail.amount}]->(r:Material {name: detail.name})
-         RETURN bom
-      """
-    )
-  #  createOrder(): Order! @cypher(statement: """
-
-  #  """)
 }
 
 type WorkOrder {
@@ -35,12 +24,11 @@ type WorkOrder {
   schedule_date: DateTime!
   has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
   HAS_PRODUCT_rel: [HAS_PRODUCT]
-  has_task: [ProcedureTask] @relation(name: "HAS_TASK", direction: OUT)
 }
 
 type ProcedureTask {
   id: ID! @id
-  is_completed: Boolean!
+  is_completed: String!
   uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
   users: [User] @relation(name: "EXECUTES", direction: IN)
 }
@@ -115,9 +103,4 @@ type HAS_PROCEDURE @relation(name: "HAS_PROCEDURE") {
   from: Craft!
   to: Procedure!
   type: String
-}
-
-input _BOMDetail {
-  name: String!
-  amount: Int!
 }

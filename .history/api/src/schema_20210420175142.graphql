@@ -7,21 +7,14 @@ type Mutation {
       RETURN from.name + '->' to.name
       """
     )
-
-  createBOM(
-    productName: String!
-    BOMName: String!
-    bomDetail: [_BOMDetail]!
-  ): BOM!
+  createBOM(productName: String!, bomDetail: List!): BOM!
     @cypher(
       statement: """
-      //WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
-      UNWIND bomDetail AS detail
-
-      MATCH (product:Material{name: $productName})
+      UNWIND $bomDetail AS detail
+      MATCH (product:Material{name: $product_name})
       MERGE (product)-[:HAS_BOM]->(bom:BOM {name: 'TableBOM'})
       MERGE (bom)-[:USES_MATERIAL{amount: detail.amount}]->(r:Material {name: detail.name})
-         RETURN bom
+      RETURN bom
       """
     )
   #  createOrder(): Order! @cypher(statement: """
@@ -115,9 +108,4 @@ type HAS_PROCEDURE @relation(name: "HAS_PROCEDURE") {
   from: Craft!
   to: Procedure!
   type: String
-}
-
-input _BOMDetail {
-  name: String!
-  amount: Int!
 }

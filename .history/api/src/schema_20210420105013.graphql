@@ -1,0 +1,48 @@
+type Craft {
+   _id: Long!
+   id: String!
+   name: String!
+   uses_bom: [BOM] @relation(name: "USES_BOM", direction: OUT)
+   first_procedure: [Procedure] @relation(name: "FIRST_PROCEDURE", direction: OUT)
+   last_procedure: [Procedure] @relation(name: "LAST_PROCEDURE", direction: OUT)
+   materials: [Material] @relation(name: "HAS_CRAFT", direction: IN)
+}
+
+type Procedure {
+   _id: Long!
+   id: String!
+   name: String!
+   next: [Procedure] @relation(name: "NEXT", direction: OUT)
+   crafts_first_procedure: [Craft] @relation(name: "FIRST_PROCEDURE", direction: IN)
+   crafts_last_procedure: [Craft] @relation(name: "LAST_PROCEDURE", direction: IN)
+}
+
+type Material {
+   _id: Long!
+   id: String!
+   name: String!
+   has_craft: [Craft] @relation(name: "HAS_CRAFT", direction: OUT)
+   boms: [BOM] @relation(name: "USES_MATERIAL", direction: IN)
+}
+
+type BOM {
+   _id: Long!
+   id: String!
+   name: String!
+   uses_material: [Material] @relation(name: "USES_MATERIAL", direction: OUT)
+   USES_MATERIAL_rel: [USES_MATERIAL]
+   crafts: [Craft] @relation(name: "USES_BOM", direction: IN)
+}
+
+
+type USES_MATERIAL @relation(name: "USES_MATERIAL") {
+  from: BOM!
+  to: Material!
+  amount: Int!
+}
+
+
+
+
+
+

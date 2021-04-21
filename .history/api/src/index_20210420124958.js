@@ -30,7 +30,7 @@ const schema = makeAugmentedSchema({
       exclude: [''],
     },
     mutation: {
-      exclude: ['WorkOrder', 'BOM'],
+      exclude: [''],
     },
   },
 })

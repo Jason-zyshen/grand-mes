@@ -15,7 +15,7 @@ type Mutation {
   ): BOM!
     @cypher(
       statement: """
-      //WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
+      WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
       UNWIND bomDetail AS detail
 
       MATCH (product:Material{name: $productName})

@@ -7,7 +7,6 @@ type Mutation {
       RETURN from.name + '->' to.name
       """
     )
-
   createBOM(
     productName: String!
     BOMName: String!
@@ -15,10 +14,10 @@ type Mutation {
   ): BOM!
     @cypher(
       statement: """
-      //WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
+      WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
       UNWIND bomDetail AS detail
 
-      MATCH (product:Material{name: $productName})
+      MATCH (product:Material{name: $product_name})
       MERGE (product)-[:HAS_BOM]->(bom:BOM {name: 'TableBOM'})
       MERGE (bom)-[:USES_MATERIAL{amount: detail.amount}]->(r:Material {name: detail.name})
          RETURN bom

@@ -30,7 +30,7 @@ const schema = makeAugmentedSchema({
       exclude: [''],
     },
     mutation: {
-      exclude: ['WorkOrder', 'BOM'],
+      exclude: [''],
     },
   },
 })
@@ -51,7 +51,7 @@ const driver = neo4j.driver(
 // Add constraints
 assertSchema({ schema, driver, debug: true })
 // Add full-text search
-// searchSchema({ schema, driver, debug: true })
+searchSchema({ schema, driver, debug: true })
 
 /*
  * Create a new ApolloServer instance, serving the GraphQL schema

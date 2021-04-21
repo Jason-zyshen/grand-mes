@@ -4,45 +4,30 @@ type Mutation {
       statement: """
       MATCH (from:Procedure{name: $from_name}), (to:Procedure{name: $to_name})
       MERGE (from)-[:NEXT]->(to)
-      RETURN from.name + '->' to.name
+      RETURN from.name + '->' + to.name
       """
     )
-
-  createBOM(
-    productName: String!
-    BOMName: String!
-    bomDetail: [_BOMDetail]!
-  ): BOM!
-    @cypher(
-      statement: """
-      //WITH [{name: 'leg', amount: 4}, {name: 'board', amount: 1}] AS bomDetail
-      UNWIND bomDetail AS detail
-
-      MATCH (product:Material{name: $productName})
-      MERGE (product)-[:HAS_BOM]->(bom:BOM {name: 'TableBOM'})
-      MERGE (bom)-[:USES_MATERIAL{amount: detail.amount}]->(r:Material {name: detail.name})
-         RETURN bom
-      """
-    )
-  #  createOrder(): Order! @cypher(statement: """
-
-  #  """)
 }
 
 type WorkOrder {
   id: ID! @id
-  is_completed: Boolean!
-  schedule_date: DateTime!
+  is_completed: String!
+  schedule_date: String!
+  last_task: [ProcedureTask] @relation(name: "LAST_TASK", direction: OUT)
   has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
   HAS_PRODUCT_rel: [HAS_PRODUCT]
-  has_task: [ProcedureTask] @relation(name: "HAS_TASK", direction: OUT)
+  uses_craft: [Craft] @relation(name: "USES_CRAFT", direction: OUT)
+  first_task: [ProcedureTask] @relation(name: "FIRST_TASK", direction: OUT)
 }
 
 type ProcedureTask {
   id: ID! @id
-  is_completed: Boolean!
+  is_completed: String!
   uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
-  users: [User] @relation(name: "EXECUTES", direction: IN)
+  workorders_last_task: [WorkOrder] @relation(name: "LAST_TASK", direction: IN)
+  users_executes: [User] @relation(name: "EXECUTES", direction: IN)
+  workorders_first_task: [WorkOrder]
+    @relation(name: "FIRST_TASK", direction: IN)
 }
 
 type User {
@@ -59,22 +44,19 @@ type Craft {
   first_procedure: [Procedure]
     @relation(name: "FIRST_PROCEDURE", direction: OUT)
   last_procedure: [Procedure] @relation(name: "LAST_PROCEDURE", direction: OUT)
-  has_procedure: [Procedure] @relation(name: "HAS_PROCEDURE", direction: OUT)
-  HAS_PROCEDURE_rel: [HAS_PROCEDURE]
   materials: [Material] @relation(name: "HAS_CRAFT", direction: IN)
+  workorders: [WorkOrder] @relation(name: "USES_CRAFT", direction: IN)
 }
 
 type Procedure {
   id: ID! @id
   name: String! @unique
-  next: [Procedure] @relation(name: "NEXT", direction: OUT)
   crafts_first_procedure: [Craft]
     @relation(name: "FIRST_PROCEDURE", direction: IN)
   crafts_last_procedure: [Craft]
     @relation(name: "LAST_PROCEDURE", direction: IN)
   proceduretasks_uses_procedure: [ProcedureTask]
     @relation(name: "USES_PROCEDURE", direction: IN)
-  crafts_has_procedure: [Craft] @relation(name: "HAS_PROCEDURE", direction: IN)
 }
 
 type Material {
@@ -109,15 +91,4 @@ type EXECUTES @relation(name: "EXECUTES") {
   from: User!
   to: ProcedureTask!
   at_time: String!
-}
-
-type HAS_PROCEDURE @relation(name: "HAS_PROCEDURE") {
-  from: Craft!
-  to: Procedure!
-  type: String
-}
-
-input _BOMDetail {
-  name: String!
-  amount: Int!
 }
