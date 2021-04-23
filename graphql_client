@@ -16,7 +16,7 @@ query ListMaterial {
 
 # - Create a BOM with certain amount of materials
 mutation CreateBOM {
-  createBOM(
+  CreateBOM(
     productName: "table"
     BOMName: "tableBOM"
     bomDetail: [{ name: "leg", amount: 4 }, { name: "board", amount: 1 }]
@@ -74,13 +74,11 @@ query ListProcedure {
 
 # - Create a craft with procedures and BOM
 mutation CreateCraft {
-  createCraft(
+  CreateCraft(
     productName: "table"
-    craftName: "makeTable"
+    craftName: "oneProcedure"
     craftDetail: [
-      { name: "assembly", next: "paint" }
-      { name: "paint", next: "quality" }
-      { name: "quality" }
+      { name: "p0"}
     ]
   ) {
     id
@@ -91,7 +89,15 @@ mutation CreateCraft {
   }
 }
 
-
+query ListCraft {
+  Craft{
+    id
+    name
+    has_procedure {
+      name
+    }
+  }
+}
 # - Link a BOM to a procedure
 
 # - List the craft and BOM of a product
@@ -113,10 +119,7 @@ query CraftAndBOMOfProduct {
           }
         }
       }
-      first_procedure {
-        name
-      }
-      last_procedure {
+      has_procedure {
         name
       }
     }
@@ -124,73 +127,48 @@ query CraftAndBOMOfProduct {
 }
 
 # - Create an order of a product with certain amount and deadline
-# mutation CreateWorkOrder {
-#   CreateWorkOrder(
-#     data: {
-#       is_completed: false
-#       schedule_date: { year: 2021, month: 11, day: 11 }
-#     }
-#   ) {
-#     id
-#     is_completed
-#     schedule_date {
-#       year
-#       month
-#       day
-#     }
-#     HAS_PRODUCT_rel {
-#       amount
-#       Material {
-#         id
-#         name
-#       }
-#     }
-#   }
-# }
+mutation CreateWorkOrder {
+  CreateOrder(
+    productName: "table"
+    craftName: "makeTable"
+    productAmount: 2
+    deadline: "2021-06-01"
+  ) {
+    id
+    is_completed
+
+    HAS_PRODUCT_rel {
+      amount
+      Material {
+        name
+      }
+    }
+    has_task {
+      name
+      amount
+    }
+  }
+}
 
 # - List orders
 query ListWorkOrder {
   WorkOrder {
     id
     is_completed
-    schedule_date {
-      year
-      month
-      day
-    }
-    has_task {
-      id
-      is_completed
-      uses_procedure {
-        id
+    HAS_PRODUCT_rel {
+      amount
+      Material {
         name
       }
     }
+    has_task {
+      id
+      name
+      amount
+      is_completed
+    }
   }
 }
-
-# - Link a product to this order
-# mutation AddProductToOrder {
-#   AddWorkOrderHAS_PRODUCT_rel(
-#     from: { id: "774d45e1-d6b0-4c8b-919c-697039f85f92" }
-#     to: { id: "6be3f997-661f-4180-9cd1-32e010147ee8" }
-#     data: { amount: 2 }
-#   ) {
-#     from {
-#       id
-#       schedule_date {
-#         year
-#         month
-#         day
-#       }
-#     }
-#     to {
-#       id
-#       name
-#     }
-#     amount
-#   }
-# }
 
 # - Select an available craft and BOM for this order
 query ListCraftAndBOMOfOrder {
@@ -218,10 +196,13 @@ query ListCraftAndBOMOfOrder {
   }
 }
 
-# - Auto-create the procedures tasks of an order according to the craft
-mutation CreateProcedureTask {
-  CreateProcedureTask(data: { is_completed: false }) {
+# - List all the tasks that need to be completed
+query ListTasks {
+  ProcedureTask(filter: { is_completed: false}) {
     id
+    name
+    is_completed
+    amount
     uses_procedure {
       id
       name
@@ -229,20 +210,35 @@ mutation CreateProcedureTask {
   }
 }
 
-mutation AddProcedureToTask {
-  AddProcedureTaskUses_procedure(from: { id: "" }, to: { id: "" }) {
-    from {
+# - Show the current tasks
+query ListNextTask {
+  listNextTask {
+    id
+    name
+    is_completed
+    amount
+    in_order {
       id
-    }
-    to {
-      id
-      name
     }
   }
 }
 
-# - List all the tasks that need to be completed
+# - Create user
+mutation CreateUser {
+  CreateUser(data: { name: "John" }) {
+    id
+    name
+  }
+}
 
 # - Execute a task
-# - Show the current tasks of an order
+mutation ExecuteTask{
+  ExecuteTask(
+      userName: "John"
+      taskId: "59b969c7-0379-44c6-a510-c75c3d5b1682",
+      amount: 10
+      time: "2021-04-22 16:24:00"
+  )
+}
+
 # - Show the completed amount of production with required

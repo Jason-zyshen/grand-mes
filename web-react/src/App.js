@@ -1,9 +1,5 @@
 import React from 'react'
-
 import { Switch, Route, BrowserRouter as Router } from 'react-router-dom'
-
-import UserList from './components/UserList'
-
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -28,8 +24,11 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
+  Lens as LensIcon,
 } from '@material-ui/icons'
 import Dashboard from './components/Dashboard'
+import UserList from './components/UserList'
+import Material from './components/DataTable'
 
 function Copyright() {
   return (
@@ -203,6 +202,15 @@ export default function App() {
               </ListItem>
             </Link>
 
+            <Link to="/materials" className={classes.navLink}>
+              <ListItem button>
+                <ListItemIcon>
+                  <LensIcon />
+                </ListItemIcon>
+                <ListItemText primary="Materials" />
+              </ListItem>
+            </Link>
+
             <Link to="/users" className={classes.navLink}>
               <ListItem button>
                 <ListItemIcon>
@@ -219,7 +227,7 @@ export default function App() {
           <Container maxWidth="lg" className={classes.container}>
             <Switch>
               <Route exact path="/" component={Dashboard} />
-              <Route exact path="/businesses" component={UserList} />
+              <Route exact path="/materials" component={Material} />
               <Route exact path="/users" component={UserList} />
             </Switch>
 

@@ -182,13 +182,141 @@ Now we can use `@id`, `@unique`, `@index` after the properties of a node or rela
 
 ## More complex logics
 
-- [x] BOM
-- [x] Craft
-- [x] WorkOrder
+- BOM
+  - Create a BOM with unique ID
+  - Connect this BOM to material with certain amount
 
-## Build up frontend With rReact and Material UI
+```cypher
+// bomDetail = [{ name: "leg", amount: 4 }, { name: "board", amount: 1 }]
 
-## Authentication and authorization with JWT
+// Create a BOM
+UNWIND $bomDetail AS detail
+MATCH (product:Material{name: $productName})
+MATCH (material:Material {name: detail.name})
+MERGE (bom:BOM {name: $BOMName})
+  ON CREATE SET bom.id = apoc.create.uuid()
+
+// Connect this BOM to material with certain amount
+MERGE (product)-[:HAS_BOM]->(bom)
+MERGE (bom)-[:USES_MATERIAL {amount: detail.amount}]->(material)
+
+RETURN bom
+```
+
+- Craft
+  - Create a craft with unique ID
+  - Add procedures to craft with order
+
+```cypher
+// craftDetail: [{ name: "p0", next: "p1"}, { name: "p1", next: "p2"}, { name: "p2"}]
+
+// Create a craft.
+MATCH (product:Material{name: $productName})
+MERGE (craft:Craft {name: $craftName})
+  ON CREATE SET craft.id = apoc.create.uuid()
+MERGE (product)-[:HAS_CRAFT]->(craft)
+WITH craft
+
+// Add procedures to craft with order.
+MATCH (first:Procedure {name: $craftDetail[0].name})
+MATCH (last:Procedure {name: $craftDetail[-1].name})
+MERGE (craft)-[fp:HAS_PROCEDURE {is_first: true}]->(first)
+MERGE (craft)-[lp:HAS_PROCEDURE {is_last: true}]->(last)
+WITH craft
+
+UNWIND $craftDetail AS detail
+MATCH (procedure:Procedure {name: detail.name})
+WHERE detail.next IS NOT NULL
+MATCH (next:Procedure {name: detail.next})
+MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
+
+// TODO: return null when given one procedure.
+RETURN craft
+```
+
+- WorkOrder
+  - Create an order with unique ID
+  - Create tasks from craft
+  - Add order to tasks
+
+```cypher
+// Create an order.
+MATCH (product:Material{name: $productName})
+MERGE (order:WorkOrder {id: apoc.create.uuid()})
+  ON CREATE SET order.is_completed = false, order.deadline = $deadline
+MERGE (product)<-[:HAS_PRODUCT {amount: $productAmount}]-(order)
+WITH order
+
+// Create tasks from craft.
+MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
+MERGE (order)-[:USES_CRAFT]->(craft)
+MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
+  ON CREATE SET task.name = procedure.name, task.is_completed = false, task.amount = $productAmount
+MERGE (order)-[:HAS_TASK]->(task)
+WITH order, task, craft
+
+// Add first and last mark.
+MATCH (craft)-[:HAS_PROCEDURE {is_first: true}]->(:Procedure)<-[:USES_PROCEDURE]-(first:ProcedureTask)<-[:HAS_TASK]-(order)
+MATCH (craft)-[:HAS_PROCEDURE {is_last: true}]->(:Procedure)<-[:USES_PROCEDURE]-(last:ProcedureTask)<-[:HAS_TASK]-(order)
+MERGE (order)-[ft:HAS_TASK]->(first)
+SET ft.is_first = true
+MERGE (order)-[lt:HAS_TASK]->(last)
+SET lt.is_last = true
+WITH order, task
+
+// Add order to tasks.
+MATCH (task)-[:USES_PROCEDURE]->(:Procedure)-[:NEXT]->(:Procedure)<-[:USES_PROCEDURE]-(nextTask:ProcedureTask)<-[:HAS_TASK]-(order)
+MERGE (task)-[:NEXT]->(nextTask)
+
+RETURN order
+```
+
+- Execute a task
+  - Execute a task
+  - Complete a task if the required amount is finished
+  - Complete an order if the last task is completed
+
+```cypher
+// Execute a task.
+MATCH (user: User {name: $userName})
+OPTIONAL MATCH (task: ProcedureTask {id: $taskId, is_completed: false})
+MERGE (user)-[:EXECUTES {at_time: $time, amount: $amount}]->(task)
+WITH task
+
+// Complete a task if the required amount is finished.
+MATCH (task)<-[exe:EXECUTES]-(:User)
+WITH task, sum(exe.amount) AS completedAmount
+WHERE completedAmount >= task.amount
+SET task.is_completed = true
+WITH task
+
+// Complete an order if the last task is completed.
+MATCH (task)<-[h:HAS_TASK]-(order:WorkOrder)
+WHERE NOT (task)-[:NEXT]->() AND task.is_completed = true
+SET order.is_completed = true
+RETURN true
+```
+
+**Tips:**
+
+- Better use Cypher rather than APOC.
+- Combine Cypher quires with JavaScript if when handling complex logic.
+
+# Build up frontend With React and Material UI
+
+## Have a quick look on Material UI.
+
+[Material UI]()
+
+## Components we need to use.
+
+- Drawer
+- App bar (with search function)
+- Data table that can collapse and expand
+- Popup (Dialog) that can have be used to add, update or delete items
+- Button in each row and above the table
+
+# Authentication and authorization with JWT
 
 @hasRole, @hasScope, @isAuthenticated
 
@@ -196,3 +324,17 @@ Now we can use `@id`, `@unique`, `@index` after the properties of a node or rela
 
 - [ ] auto generation
 - [ ] clone graph
+- [x] APOC: conditional expression
+- [ ] APOC: automatic
+- [ ] use JS with cypher
+- [ ] complex logics in cypher
+- [ ] [Custom Resolvers](https://grandstack.io/docs/graphql-custom-logic#implementing-custom-resolvers)
+- [ ] How to deal with date time in neo4j
+- [ ] Neo4j cli
+- [ ] How edit cypher in vscode
+- [ ] graphql extension config in package.json
+
+# Bugs and requirements
+
+- [ ] Craft can not accept one procedrue
+- [ ] Update BOM, craft, order

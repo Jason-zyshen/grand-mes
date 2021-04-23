@@ -1,5 +1,16 @@
+type Query {
+  listNextTask: [ProcedureTask!]!
+    @cypher(
+      statement: """
+      MATCH (t:ProcedureTask {is_completed: false})
+      WHERE NOT (t)<-[:NEXT]-(:ProcedureTask {is_completed: false})
+      RETURN t
+      """
+    )
+}
+
 type Mutation {
-  createBOM(
+  CreateBOM(
     productName: String!
     BOMName: String!
     bomDetail: [_BOMDetail]!
@@ -16,55 +27,59 @@ type Mutation {
       RETURN bom
       """
     )
-  createCraft(
+
+  CreateCraft(
     productName: String!
     craftName: String!
     craftDetail: [_craftDetail!]!
   ): Craft!
     @cypher(
       statement: """
+      // Create a craft.
       MATCH (product:Material{name: $productName})
       MERGE (craft:Craft {name: $craftName})
         ON CREATE SET craft.id = apoc.create.uuid()
       MERGE (product)-[:HAS_CRAFT]->(craft)
       WITH craft
 
+      // Add procedures to craft with order.
       MATCH (first:Procedure {name: $craftDetail[0].name})
       MATCH (last:Procedure {name: $craftDetail[-1].name})
       MERGE (craft)-[fp:HAS_PROCEDURE {is_first: true}]->(first)
       MERGE (craft)-[lp:HAS_PROCEDURE {is_last: true}]->(last)
       WITH craft
 
-      // TODO: Will throw error when only one procedure.
       UNWIND $craftDetail AS detail
       MATCH (procedure:Procedure {name: detail.name})
-      MATCH (next:Procedure {name: detail.next})
       WHERE detail.next IS NOT NULL
-      MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
-      MERGE (procedure)-[:NEXT]->(next)
+      MATCH (next:Procedure {name: detail.next})
+      MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
 
+      // TODO: return null when given one procedure.
       RETURN craft
       """
     )
 
-  createOrder(
+  CreateOrder(
     productName: String!
+    productAmount: Int!
+    deadline: String!
     craftName: String!
-    orderId: ID
   ): WorkOrder!
     @cypher(
       statement: """
-      // Create order.
+      // Create an order.
       MATCH (product:Material{name: $productName})
-      MERGE (product)<-[:HAS_PRODUCT]-(order:WorkOrder {id: apoc.create.uuid()})
-        ON CREATE SET order.is_completed = false
+      MERGE (order:WorkOrder {id: apoc.create.uuid()})
+        ON CREATE SET order.is_completed = false, order.deadline = $deadline
+      MERGE (product)<-[:HAS_PRODUCT {amount: $productAmount}]-(order)
       WITH order
 
       // Create tasks from craft.
       MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
       MERGE (order)-[:USES_CRAFT]->(craft)
       MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
-        ON CREATE SET task.name = procedure.name
+        ON CREATE SET task.name = procedure.name, task.is_completed = false, task.amount = $productAmount
       MERGE (order)-[:HAS_TASK]->(task)
       WITH order, task, craft
 
@@ -84,12 +99,41 @@ type Mutation {
       RETURN order
       """
     )
+  ExecuteTask(
+    userName: String!
+    taskId: String!
+    amount: Int!
+    time: String!
+  ): Boolean
+    @cypher(
+      statement: """
+      // Execute a task.
+      MATCH (user: User {name: $userName})
+      OPTIONAL MATCH (task: ProcedureTask {id: $taskId, is_completed: false})
+      MERGE (user)-[:EXECUTES {at_time: $time, amount: $amount}]->(task)
+      WITH task
+
+      // Complete a task if the required amount is finished.
+      MATCH (task)<-[exe:EXECUTES]-(:User)
+      WITH task, sum(exe.amount) AS completedAmount
+      WHERE completedAmount >= task.amount
+      SET task.is_completed = true
+      WITH task
+
+      // Complete an order if the last task is completed.
+      MATCH (task)<-[h:HAS_TASK]-(order:WorkOrder)
+      WHERE NOT (task)-[:NEXT]->() AND task.is_completed = true
+      SET order.is_completed = true
+      RETURN true
+      """
+    )
 }
 
 type WorkOrder {
   id: ID! @id
   is_completed: Boolean!
   schedule_date: String
+  deadline: String
   has_product: [Material] @relation(name: "HAS_PRODUCT", direction: OUT)
   HAS_PRODUCT_rel: [HAS_PRODUCT]
   has_task: [ProcedureTask] @relation(name: "HAS_TASK", direction: OUT)
@@ -99,6 +143,8 @@ type ProcedureTask {
   id: ID! @id
   name: String!
   is_completed: Boolean!
+  amount: Int!
+  in_order: WorkOrder! @relation(name: "HAS_TASK", direction: IN)
   uses_procedure: [Procedure] @relation(name: "USES_PROCEDURE", direction: OUT)
   users: [User] @relation(name: "EXECUTES", direction: IN)
 }
@@ -112,7 +158,7 @@ type User {
 
 type Craft {
   id: ID! @id
-  name: String! @unique
+  name: String! @unique @search
   uses_bom: [BOM] @relation(name: "USES_BOM", direction: OUT)
   first_procedure: [Procedure]
     @relation(name: "FIRST_PROCEDURE", direction: OUT)
@@ -167,6 +213,7 @@ type EXECUTES @relation(name: "EXECUTES") {
   from: User!
   to: ProcedureTask!
   at_time: String!
+  amount: Int!
 }
 
 type HAS_PROCEDURE @relation(name: "HAS_PROCEDURE") {
