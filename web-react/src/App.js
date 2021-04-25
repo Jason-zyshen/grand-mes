@@ -27,8 +27,9 @@ import {
   Lens as LensIcon,
 } from '@material-ui/icons'
 import Dashboard from './components/Dashboard'
-import UserList from './components/UserList'
+// import UserList from './components/UserList'
 import Material from './components/DataTable'
+import CollapsibleTable from './components/CollapsibleTable'
 
 function Copyright() {
   return (
@@ -211,12 +212,12 @@ export default function App() {
               </ListItem>
             </Link>
 
-            <Link to="/users" className={classes.navLink}>
+            <Link to="/CollapsibleTable" className={classes.navLink}>
               <ListItem button>
                 <ListItemIcon>
                   <PeopleIcon />
                 </ListItemIcon>
-                <ListItemText primary="Users" />
+                <ListItemText primary="CollapsibleTable" />
               </ListItem>
             </Link>
           </List>
@@ -228,7 +229,11 @@ export default function App() {
             <Switch>
               <Route exact path="/" component={Dashboard} />
               <Route exact path="/materials" component={Material} />
-              <Route exact path="/users" component={UserList} />
+              <Route
+                exact
+                path="/CollapsibleTable"
+                component={CollapsibleTable}
+              />
             </Switch>
 
             <Box pt={4}>

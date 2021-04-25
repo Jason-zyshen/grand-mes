@@ -45,8 +45,8 @@ type Mutation {
       // Add procedures to craft with order.
       MATCH (first:Procedure {name: $craftDetail[0].name})
       MATCH (last:Procedure {name: $craftDetail[-1].name})
-      MERGE (craft)-[fp:HAS_PROCEDURE {is_first: true}]->(first)
-      MERGE (craft)-[lp:HAS_PROCEDURE {is_last: true}]->(last)
+      MERGE (craft)-[:HAS_PROCEDURE {is_first: true}]->(first)
+      MERGE (craft)-[:HAS_PROCEDURE {is_last: true}]->(last)
       WITH craft
 
       UNWIND $craftDetail AS detail
@@ -54,6 +54,7 @@ type Mutation {
       WHERE detail.next IS NOT NULL
       MATCH (next:Procedure {name: detail.next})
       MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
+      MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
 
       // TODO: return null when given one procedure.
       RETURN craft
@@ -99,6 +100,7 @@ type Mutation {
       RETURN order
       """
     )
+
   ExecuteTask(
     userName: String!
     taskId: String!

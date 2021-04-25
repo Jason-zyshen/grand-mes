@@ -210,7 +210,7 @@ RETURN bom
 ```cypher
 // craftDetail: [{ name: "p0", next: "p1"}, { name: "p1", next: "p2"}, { name: "p2"}]
 
-// Create a craft.
+/// Create a craft.
 MATCH (product:Material{name: $productName})
 MERGE (craft:Craft {name: $craftName})
   ON CREATE SET craft.id = apoc.create.uuid()
@@ -220,8 +220,8 @@ WITH craft
 // Add procedures to craft with order.
 MATCH (first:Procedure {name: $craftDetail[0].name})
 MATCH (last:Procedure {name: $craftDetail[-1].name})
-MERGE (craft)-[fp:HAS_PROCEDURE {is_first: true}]->(first)
-MERGE (craft)-[lp:HAS_PROCEDURE {is_last: true}]->(last)
+MERGE (craft)-[:HAS_PROCEDURE {is_first: true}]->(first)
+MERGE (craft)-[:HAS_PROCEDURE {is_last: true}]->(last)
 WITH craft
 
 UNWIND $craftDetail AS detail
@@ -229,6 +229,7 @@ MATCH (procedure:Procedure {name: detail.name})
 WHERE detail.next IS NOT NULL
 MATCH (next:Procedure {name: detail.next})
 MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
+MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
 
 // TODO: return null when given one procedure.
 RETURN craft
@@ -306,15 +307,20 @@ RETURN true
 
 ## Have a quick look on Material UI.
 
-[Material UI]()
+[Material UI](https://material-ui.com/)
 
 ## Components we need to use.
 
-- Drawer
-- App bar (with search function)
-- Data table that can collapse and expand
-- Popup (Dialog) that can have be used to add, update or delete items
-- Button in each row and above the table
+As we have a quite simple data structure, we can design a template rather than build frontend page one by one. Here is a design that fit our MES well.
+
+![Material template]('')
+
+- [x] Drawer
+- [ ] App bar (with search function)
+- [ ] Data table that can collapse and expand
+- [x] Popup (Dialog) that can have be used to add, update or delete items
+- [x] Button in each row
+- [x] Button above the table
 
 # Authentication and authorization with JWT
 
@@ -333,8 +339,12 @@ RETURN true
 - [ ] Neo4j cli
 - [ ] How edit cypher in vscode
 - [ ] graphql extension config in package.json
+- [ ] Typescript and code generator
 
 # Bugs and requirements
 
 - [ ] Craft can not accept one procedrue
 - [ ] Update BOM, craft, order
+- [ ] Control outputs in a complex process
+- [ ] Do not display Delete button when create an item
+- [ ] Move create button into toolbar
