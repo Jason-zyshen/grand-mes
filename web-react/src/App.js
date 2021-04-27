@@ -200,7 +200,7 @@ export default function App() {
               </ListItem>
             </Link>
 
-            <Link to="/CollapsibleTable" className={classes.navLink}>
+            <Link to="/" className={classes.navLink}>
               <ListItem button>
                 <ListItemIcon>
                   <PeopleIcon />
@@ -216,11 +216,7 @@ export default function App() {
           <Container maxWidth="lg" className={classes.container}>
             <Switch>
               <Route exact path="/DataTable" component={DataTable} />
-              <Route
-                exact
-                path="/CollapsibleTable"
-                component={CollapsibleTable}
-              />
+              <Route exact path="/" component={CollapsibleTable} />
             </Switch>
 
             <Box pt={4}>

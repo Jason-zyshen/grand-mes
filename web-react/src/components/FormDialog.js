@@ -16,7 +16,8 @@ function DynamicTextField(props) {
 
   return (
     <div>
-      <Grid container justify="space-between">
+      <Grid container>
+        {/* justify="space-between" */}
         {entries.map((entry) => (
           <Grid key={entry[0]}>
             <TextField key={entry[0]} label={entry[0]} value={entry[1]} />
