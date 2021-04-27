@@ -31,9 +31,9 @@ export default function CreateItem(props) {
   return (
     <div>
       <FormDialog
-        buttonName="Create"
-        dialogName="CreateMaterial"
         row={props.row}
+        buttonName="Create"
+        dialogName="Create"
         submit={createData}
       />
     </div>

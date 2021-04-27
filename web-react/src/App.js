@@ -22,21 +22,18 @@ import { Link } from 'react-router-dom'
 import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
   People as PeopleIcon,
   Lens as LensIcon,
 } from '@material-ui/icons'
-import Dashboard from './components/Dashboard'
-// import UserList from './components/UserList'
-import Material from './components/DataTable'
+import DataTable from './components/DataTable'
 import CollapsibleTable from './components/CollapsibleTable'
 
 function Copyright() {
   return (
     <Typography variant="body2" color="textSecondary" align="center">
       {'Copyright © '}
-      <MUILink color="inherit" href="https://grandstack.io/">
-        Your GRANDstack App Name Here
+      <MUILink color="inherit" href="https://github.com/Jason-zyshen/graph-mes">
+        Graph MES
       </MUILink>{' '}
       {new Date().getFullYear()}
       {'.'}
@@ -167,7 +164,7 @@ export default function App() {
             <img
               className={classes.appBarImage}
               src="img/grandstack.png"
-              alt="GRANDstack logo"
+              alt="Graph MES logo"
             />
             <Typography
               component="h1"
@@ -176,7 +173,7 @@ export default function App() {
               noWrap
               className={classes.title}
             >
-              Welcome To GRANDstack App
+              Welcome To Graph MES
             </Typography>
           </Toolbar>
         </AppBar>
@@ -194,21 +191,12 @@ export default function App() {
           </div>
           <Divider />
           <List>
-            <Link to="/" className={classes.navLink}>
-              <ListItem button>
-                <ListItemIcon>
-                  <DashboardIcon />
-                </ListItemIcon>
-                <ListItemText primary="Dashboard" />
-              </ListItem>
-            </Link>
-
-            <Link to="/materials" className={classes.navLink}>
+            <Link to="/DataTable" className={classes.navLink}>
               <ListItem button>
                 <ListItemIcon>
                   <LensIcon />
                 </ListItemIcon>
-                <ListItemText primary="Materials" />
+                <ListItemText primary="DataTable" />
               </ListItem>
             </Link>
 
@@ -227,8 +215,7 @@ export default function App() {
           <div className={classes.appBarSpacer} />
           <Container maxWidth="lg" className={classes.container}>
             <Switch>
-              <Route exact path="/" component={Dashboard} />
-              <Route exact path="/materials" component={Material} />
+              <Route exact path="/DataTable" component={DataTable} />
               <Route
                 exact
                 path="/CollapsibleTable"

@@ -41,9 +41,9 @@ export default function UpdateItem(props) {
   return (
     <div>
       <FormDialog
-        buttonName="Update"
-        dialogName="UpdateMaterial"
         row={props.row}
+        buttonName="Update"
+        dialogName="Update"
         submit={updateData}
         delete={deleteData}
       />

@@ -6,11 +6,37 @@ import DialogActions from '@material-ui/core/DialogActions'
 import DialogContent from '@material-ui/core/DialogContent'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import Grid from '@material-ui/core/Grid'
+import { DynamicTable } from './DynamicTable'
+import { SliceObject } from './ObjectHandler'
+
+function DynamicTextField(props) {
+  const { rows } = props
+  console.log(rows)
+  const entries = Object.entries(rows)
+
+  return (
+    <div>
+      <Grid container justify="space-between">
+        {entries.map((entry) => (
+          <Grid key={entry[0]}>
+            <TextField key={entry[0]} label={entry[0]} value={entry[1]} />
+          </Grid>
+        ))}
+      </Grid>
+    </div>
+  )
+}
 
 export default function FormDialog(props) {
-  const currentValue = props?.row?.name || ''
+  const { row } = props
+  console.log(row)
+
+  const rowValue = SliceObject(row || [])
+  const rowArray = row?.boms || []
   const [open, setOpen] = React.useState(false)
-  const [name, setName] = React.useState(currentValue)
+
+  const currentValue = props.row?.name || ''
+  // const [name, setName] = React.useState(currentValue)
 
   const handleClickOpen = () => {
     setOpen(true)
@@ -20,9 +46,9 @@ export default function FormDialog(props) {
     setOpen(false)
   }
 
-  const handleChange = (e) => {
-    setName(e.target.value)
-  }
+  // const handleChange = (e) => {
+  //   setName(e.target.value)
+  // }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -35,6 +61,9 @@ export default function FormDialog(props) {
     props.delete({ variables: { currentValue: currentValue } })
     setOpen(false)
   }
+
+  const disableDelete = props.delete == undefined
+  const disableSubmit = props.submit == undefined
 
   return (
     <div>
@@ -50,18 +79,17 @@ export default function FormDialog(props) {
       >
         <DialogTitle id="form-dialog-title">{props.dialogName}</DialogTitle>
         <DialogContent>
-          <TextField
-            id="name"
-            label="Name"
-            value={name}
-            onChange={handleChange}
-          />
+          <DynamicTextField rows={rowValue} />
+          <DynamicTable rows={rowArray} collapsible={false} />
         </DialogContent>
         <DialogActions>
           <Grid container justify="space-between">
             <Grid>
-              <Button onClick={handleDelete} color="secondary">
-                {/* TODO: Disable this button in create dialog */}
+              <Button
+                onClick={handleDelete}
+                color="secondary"
+                disabled={disableDelete}
+              >
                 Delete
               </Button>
             </Grid>
@@ -69,7 +97,11 @@ export default function FormDialog(props) {
               <Button onClick={handleClose} color="primary">
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} color="primary">
+              <Button
+                onClick={handleSubmit}
+                color="primary"
+                disabled={disableSubmit}
+              >
                 {props.buttonName}
               </Button>
             </Grid>

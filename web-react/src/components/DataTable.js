@@ -1,14 +1,18 @@
 import React from 'react'
 import { useQuery, gql } from '@apollo/client'
-import { DataGrid, GridToolbar } from '@material-ui/data-grid'
+import { DataGrid } from '@material-ui/data-grid'
 import UpdateItem from './UpdateItem'
-import CreateItem from './CreateItem'
+import TableToolBar from './TableToolBar'
+// import { GetCleanKeys } from './ObjectHandler'
 
 const QUERY = gql`
   {
     Material {
       id
       name
+      boms {
+        name
+      }
     }
   }
 `
@@ -16,14 +20,20 @@ const QUERY = gql`
 const columns = [
   { field: 'id', headerName: 'ID', flex: 1 },
   { field: 'name', headerName: 'Name', flex: 1 },
-  { field: '', headerName: '', sortable: false, renderCell: UpdateItem },
+  {
+    field: '',
+    headerName: '',
+    flex: 0.5,
+    sortable: false,
+    renderCell: UpdateItem,
+  },
 ]
 
-export default function Material() {
+export default function DataTable() {
   const { data } = useQuery(QUERY)
+  // const key = GetCleanKeys(data)[0]
   return (
     <div style={{ display: 'flex' }}>
-      <CreateItem />
       <DataGrid
         rows={data?.Material || []}
         columns={columns}
@@ -31,7 +41,7 @@ export default function Material() {
         autoHeight
         disableColumnMenu
         disableSelectionOnClick
-        components={{ Toolbar: GridToolbar }}
+        components={{ Toolbar: TableToolBar }}
       />
     </div>
   )

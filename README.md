@@ -343,8 +343,11 @@ As we have a quite simple data structure, we can design a template rather than b
 
 # Bugs and requirements
 
-- [ ] Craft can not accept one procedrue
+- [ ] Craft can not accept one procedure
 - [ ] Update BOM, craft, order
 - [ ] Control outputs in a complex process
 - [ ] Do not display Delete button when create an item
 - [ ] Move create button into toolbar
+- [ ] Missing "key" prop for element in iterator
+- [ ] Use table head to select certain columns of data
+- [ ] Use dictionary to rename table head
