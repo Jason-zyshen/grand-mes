@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@gqless/cli": "^2.0.15",
     "@graphql-eslint/eslint-plugin": "^0.9.1",
     "concurrently": "^5.2.0",
     "dotenv": "^8.2.0",
@@ -20,7 +21,8 @@
     "build": "node scripts/build.js",
     "format": "find . -name \"*.js\" | grep -v node_modules | grep -v build | xargs prettier --write",
     "format:log": "find . -name \"*.js\" | grep -v node_modules | grep -v build | xargs prettier",
-    "inferschema:write": "node scripts/inferSchema.js"
+    "inferschema:write": "node scripts/inferSchema.js",
+    "generate": "gqless generate"
   },
   "husky": {
     "hooks": {
@@ -34,6 +36,9 @@
     ]
   },
   "dependencies": {
-    "@material-ui/core": "^4.11.3"
+    "@gqless/logger": "^2.0.11",
+    "@gqless/react": "^2.0.15",
+    "@material-ui/core": "^4.11.3",
+    "gqless": "^2.0.13"
   }
 }

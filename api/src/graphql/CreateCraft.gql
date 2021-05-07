@@ -1,0 +1,36 @@
+type Mutation {
+  CreateCraft(
+    productName: String!
+    craftName: String!
+    craftDetail: [_craftDetail!]!
+  ): Craft!
+    @cypher(
+      statement: """
+      // craftDetail: [{ name: "p0", next: "p1"}, { name: "p1", next: "p2"}, { name: "p2"}]
+
+      // Create a craft.
+      MATCH (product:Material{name: $productName})
+      MERGE (craft:Craft {name: $craftName})
+        ON CREATE SET craft.id = apoc.create.uuid()
+      MERGE (product)-[:HAS_CRAFT]->(craft)
+      WITH craft
+
+      // Add procedures to craft with order.
+      MATCH (first:Procedure {name: $craftDetail[0].name})
+      MATCH (last:Procedure {name: $craftDetail[-1].name})
+      MERGE (craft)-[:HAS_PROCEDURE {is_first: true}]->(first)
+      MERGE (craft)-[:HAS_PROCEDURE {is_last: true}]->(last)
+      WITH craft
+
+      UNWIND $craftDetail AS detail
+      MATCH (procedure:Procedure {name: detail.name})
+      WHERE detail.next IS NOT NULL
+      MATCH (next:Procedure {name: detail.next})
+      MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
+      MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
+
+      // TODO: return null when given one procedure.
+      RETURN craft
+      """
+    )
+}

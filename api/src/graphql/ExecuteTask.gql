@@ -1,0 +1,30 @@
+type Mutation {
+  ExecuteTask(
+    userName: String!
+    taskId: String!
+    amount: Int!
+    time: String!
+  ): Boolean
+    @cypher(
+      statement: """
+      // Execute a task.
+      MATCH (user: User {name: $userName})
+      OPTIONAL MATCH (task: ProcedureTask {id: $taskId, is_completed: false})
+      MERGE (user)-[:EXECUTES {at_time: $time, amount: $amount}]->(task)
+      WITH task
+
+      // Complete a task if the required amount is finished.
+      MATCH (task)<-[exe:EXECUTES]-(:User)
+      WITH task, sum(exe.amount) AS completedAmount
+      WHERE completedAmount >= task.amount
+      SET task.is_completed = true
+      WITH task
+
+      // Complete an order if the last task is completed.
+      MATCH (task)<-[h:HAS_TASK]-(order:WorkOrder)
+      WHERE NOT (task)-[:NEXT]->() AND task.is_completed = true
+      SET order.is_completed = true
+      RETURN true
+      """
+    )
+}

@@ -1,6 +1,7 @@
 # Introduction
 
 Here we are trying to develop a Manufacturing Executive System with GRANDstack architect.
+
 [LIVE DEMO](https://stoic-heisenberg-520632.netlify.app)
 
 # Setup Environment
@@ -166,7 +167,9 @@ We need to create uniqueness constraint to prevent our data turn into chaos afte
 
 Let's set it up.
 
-```/api/src/index.js
+```javascript
+// api/src/index.js
+
 const schema = makeAugmentedSchema({
   typeDefs,
   config: {
@@ -179,176 +182,94 @@ assertSchema({ schema, driver, debug: true })
 
 Now we can use `@id`, `@unique`, `@index` after the properties of a node or relation.
 
-## First request with generated API
-
 ## More complex logics
 
-- BOM
+It's time to dig deeper into our business logics. To make our code structure better, let's create a new folder `/graphql` and move the `schema.graphql` into it. Then revise the `graphql-schema.js` as follows.
+
+```javascript
+// api/src/graphql-schema.js
+
+import path from 'path'
+import { loadFilesSync } from '@graphql-tools/load-files'
+import { mergeTypeDefs } from '@graphql-tools/merge'
+
+const typesArray = loadFilesSync(path.join(__dirname, './graphql'), {
+  extensions: ['gql'], // Use 'graphql' if file ends with .graphql
+})
+
+export const typeDefs = mergeTypeDefs(typesArray)
+```
+
+Now we can edit our customized logics in seperated files ends with `.graphql`, or we can use the `.gql` for short.
+
+- [BOM](api/src/graphql/CreateBOM.gql)
   - Create a BOM with unique ID
   - Connect this BOM to material with certain amount
-
-```cypher
-// bomDetail = [{ name: "leg", amount: 4 }, { name: "board", amount: 1 }]
-
-// Create a BOM
-UNWIND $bomDetail AS detail
-MATCH (product:Material{name: $productName})
-MATCH (material:Material {name: detail.name})
-MERGE (bom:BOM {name: $BOMName})
-  ON CREATE SET bom.id = apoc.create.uuid()
-
-// Connect this BOM to material with certain amount
-MERGE (product)-[:HAS_BOM]->(bom)
-MERGE (bom)-[:USES_MATERIAL {amount: detail.amount}]->(material)
-
-RETURN bom
-```
-
-- Craft
+- [Craft](api/src/graphql/CreateCraft.gql)
   - Create a craft with unique ID
   - Add procedures to craft with order
-
-```cypher
-// craftDetail: [{ name: "p0", next: "p1"}, { name: "p1", next: "p2"}, { name: "p2"}]
-
-/// Create a craft.
-MATCH (product:Material{name: $productName})
-MERGE (craft:Craft {name: $craftName})
-  ON CREATE SET craft.id = apoc.create.uuid()
-MERGE (product)-[:HAS_CRAFT]->(craft)
-WITH craft
-
-// Add procedures to craft with order.
-MATCH (first:Procedure {name: $craftDetail[0].name})
-MATCH (last:Procedure {name: $craftDetail[-1].name})
-MERGE (craft)-[:HAS_PROCEDURE {is_first: true}]->(first)
-MERGE (craft)-[:HAS_PROCEDURE {is_last: true}]->(last)
-WITH craft
-
-UNWIND $craftDetail AS detail
-MATCH (procedure:Procedure {name: detail.name})
-WHERE detail.next IS NOT NULL
-MATCH (next:Procedure {name: detail.next})
-MERGE (procedure)-[:NEXT {craft: craft.name}]->(next)
-MERGE (craft)-[:HAS_PROCEDURE]->(procedure)
-
-// TODO: return null when given one procedure.
-RETURN craft
-```
-
-- WorkOrder
+- [WorkOrder](api/src/graphql/CreateOrder.gql)
   - Create an order with unique ID
   - Create tasks from craft
   - Add order to tasks
-
-```cypher
-// Create an order.
-MATCH (product:Material{name: $productName})
-MERGE (order:WorkOrder {id: apoc.create.uuid()})
-  ON CREATE SET order.is_completed = false, order.deadline = $deadline
-MERGE (product)<-[:HAS_PRODUCT {amount: $productAmount}]-(order)
-WITH order
-
-// Create tasks from craft.
-MATCH (craft:Craft {name: $craftName})-[:HAS_PROCEDURE]->(procedure:Procedure)
-MERGE (order)-[:USES_CRAFT]->(craft)
-MERGE (procedure)<-[:USES_PROCEDURE]-(task:ProcedureTask {id: apoc.create.uuid()})
-  ON CREATE SET task.name = procedure.name, task.is_completed = false, task.amount = $productAmount
-MERGE (order)-[:HAS_TASK]->(task)
-WITH order, task, craft
-
-// Add first and last mark.
-MATCH (craft)-[:HAS_PROCEDURE {is_first: true}]->(:Procedure)<-[:USES_PROCEDURE]-(first:ProcedureTask)<-[:HAS_TASK]-(order)
-MATCH (craft)-[:HAS_PROCEDURE {is_last: true}]->(:Procedure)<-[:USES_PROCEDURE]-(last:ProcedureTask)<-[:HAS_TASK]-(order)
-MERGE (order)-[ft:HAS_TASK]->(first)
-SET ft.is_first = true
-MERGE (order)-[lt:HAS_TASK]->(last)
-SET lt.is_last = true
-WITH order, task
-
-// Add order to tasks.
-MATCH (task)-[:USES_PROCEDURE]->(:Procedure)-[:NEXT]->(:Procedure)<-[:USES_PROCEDURE]-(nextTask:ProcedureTask)<-[:HAS_TASK]-(order)
-MERGE (task)-[:NEXT]->(nextTask)
-
-RETURN order
-```
-
-- Execute a task
+- [List available tasks](api/src/graphql/ListNextTask.gql)
+  - Search for tasks that is uncompleted and with no uncompleted task ahead
+- [Execute a task](api/src/graphql/ExecuteTask.gql)
   - Execute a task
   - Complete a task if the required amount is finished
   - Complete an order if the last task is completed
-
-```cypher
-// Execute a task.
-MATCH (user: User {name: $userName})
-OPTIONAL MATCH (task: ProcedureTask {id: $taskId, is_completed: false})
-MERGE (user)-[:EXECUTES {at_time: $time, amount: $amount}]->(task)
-WITH task
-
-// Complete a task if the required amount is finished.
-MATCH (task)<-[exe:EXECUTES]-(:User)
-WITH task, sum(exe.amount) AS completedAmount
-WHERE completedAmount >= task.amount
-SET task.is_completed = true
-WITH task
-
-// Complete an order if the last task is completed.
-MATCH (task)<-[h:HAS_TASK]-(order:WorkOrder)
-WHERE NOT (task)-[:NEXT]->() AND task.is_completed = true
-SET order.is_completed = true
-RETURN true
-```
 
 **Tips:**
 
 - Better use Cypher rather than APOC.
 - Combine Cypher quires with JavaScript if when handling complex logic.
 
-# Build up frontend With React and Material UI
+# Build up Frontend
 
-## Have a quick look on Material UI.
+## Design the interface.
 
-[Material UI](https://material-ui.com/)
+We are going to build our frontend with [Material UI](https://material-ui.com/). As we have a quite simple data structure, we can design a template rather than build frontend page one by one. Here is a design that fit our MES well.
 
-## Components we need to use.
+**Collapsible table for detail information.**
+![Collapsible Table](img/CollapsibleTable.png)
 
-As we have a quite simple data structure, we can design a template rather than build frontend page one by one. Here is a design that fit our MES well.
+**Data table with popup dialog for customized actions.**
+![Data Table](img/DataTable.png)
 
-![Material template]('')
+Here is the components our templates need:
 
 - [x] Drawer
-- [ ] App bar (with search function)
-- [ ] Data table that can collapse and expand
+- [x] App bar
+- [x] Data table that can collapse and expand
 - [x] Popup (Dialog) that can have be used to add, update or delete items
 - [x] Button in each row
 - [x] Button above the table
 
 # Authentication and authorization with JWT
 
-@hasRole, @hasScope, @isAuthenticated
+@Auth
 
 # Explore
 
-- [ ] auto generation
+- [x] auto generation
 - [ ] clone graph
 - [x] APOC: conditional expression
 - [ ] APOC: automatic
-- [ ] use JS with cypher
-- [ ] complex logics in cypher
-- [ ] [Custom Resolvers](https://grandstack.io/docs/graphql-custom-logic#implementing-custom-resolvers)
-- [ ] How to deal with date time in neo4j
-- [ ] Neo4j cli
-- [ ] How edit cypher in vscode
-- [ ] graphql extension config in package.json
-- [ ] Typescript and code generator
+- [ ] Cypher shell
+- [x] How edit cypher in vscode
+- [x] graphql extension config in package.json
+- [x] Typescript and code generator
+- [x] GQLess
+- [ ] Auth with JWT
+- [ ] package --dev
 
 # Bugs and requirements
 
 - [ ] Craft can not accept one procedure
 - [ ] Update BOM, craft, order
 - [ ] Control outputs in a complex process
-- [ ] Do not display Delete button when create an item
-- [ ] Move create button into toolbar
-- [ ] Missing "key" prop for element in iterator
-- [ ] Use table head to select certain columns of data
+- [x] Do not display Delete button when create an item
+- [x] Move create button into toolbar
+- [x] Missing "key" prop for element in iterator
+- [x] Use table head to select certain columns of data
 - [ ] Use dictionary to rename table head

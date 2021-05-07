@@ -1,0 +1,10 @@
+type Query {
+  ListNextTask: [ProcedureTask!]!
+    @cypher(
+      statement: """
+      MATCH (t:ProcedureTask {is_completed: false})
+      WHERE NOT (t)<-[:NEXT]-(:ProcedureTask {is_completed: false})
+      RETURN t
+      """
+    )
+}

@@ -215,8 +215,8 @@ export default function App() {
           <div className={classes.appBarSpacer} />
           <Container maxWidth="lg" className={classes.container}>
             <Switch>
-              <Route exact path="/DataTable" component={DataTable} />
               <Route exact path="/" component={CollapsibleTable} />
+              <Route exact path="/DataTable" component={DataTable} />
             </Switch>
 
             <Box pt={4}>

@@ -1,0 +1,24 @@
+type Mutation {
+  CreateBOM(
+    productName: String!
+    BOMName: String!
+    bomDetail: [_BOMDetail]!
+  ): BOM!
+    @cypher(
+      statement: """
+      // bomDetail = [{ name: "leg", amount: 4 }, { name: "board", amount: 1 }]
+
+      // Create a BOM
+      UNWIND $bomDetail AS detail
+      MATCH (product:Material{name: $productName})
+      MATCH (material:Material {name: detail.name})
+      MERGE (bom:BOM {name: $BOMName})
+       ON CREATE SET bom.id = apoc.create.uuid()
+
+      // Connect this BOM to material with certain amount
+      MERGE (product)-[:HAS_BOM]->(bom)
+      MERGE (bom)-[:USES_MATERIAL {amount: detail.amount}]->(material)
+      RETURN bom
+      """
+    )
+}
